@@ -1,7 +1,7 @@
 //--------------------- Copyright Block ----------------------
 /*
 
-PrayTimes.go: Prayer Times Calculator (ver 1.0)
+PrayTimes.go: Prayer Times Calculator (ver 2.3)
 Copyright (C) 2007-2015 PrayTimes.org
 
 Go port by: Ade Anom
@@ -36,24 +36,25 @@ http://praytimes.org/calculation
 //------------------------ User Interface -------------------------
 
 
-	GetTimes (date, coordinates [, timeZone [, dst [, timeFormat]]])
+	func GetTimes(date time.Time, coordinates []float64
+            [, timeZone float64
+            [, dst int
+            [, timeFormat string]]]) map[string]string
 
-	SetMethod (method)       // set calculation method
-	Adjust (parameters)      // adjust calculation parameters
-	Tune (offsets)           // tune times by given offsets
+	func SetMethod(method string)                          // set calculation method
+	func Adjust(parameters map[string]interface{})         // adjust calculation parameters
+	func Tune(offsets []int)                               // tune times by given offsets
 
-	GetMethod ()             // get calculation method
-	GetSetting ()            // get current calculation parameters
-	GetOffsets ()            // get current time offsets
+	func GetMethod() string                                // get calculation method
+	func GetSetting() map[string]interface{}               // get current calculation parameters
+	func GetOffsets() []int                                // get current time offsets
 
 
 //------------------------- Sample Usage --------------------------
 
 
-	var PT = new PrayTimes('ISNA');
-	var times = PT.getTimes(new Date(), [43, -80], -5);
-	document.write('Sunrise = '+ times.sunrise)
-
+	pt := praytimes.GetTimes(time.Now(), []float64{ -6.9034443, 107.5731164 }, 7, 0, "")
+    fmt.Printf("Sunrise = %v", times["sunrise"])
 
 */
 
@@ -71,37 +72,10 @@ import (
     "regexp"
 )
 
-const (
-    MWL = iota
-    ISNA
-    Egypt
-    Makkah
-    Karachi
-    Tehran
-    Jafari
-)
-
-type (
-    Params struct {
-        imsak       float64
-        imsakMin    bool
-        fajr        float64
-        dhuhr       float64
-        dhuhrMin    bool
-        asr         string
-        maghrib     float64
-        maghribMin  bool
-        isha        float64
-        ishaMin     bool
-        midnight    string
-        highLats    string
-    }
-
-    CalculationMethod struct {
-        name    string
-        param   map[string]interface{}
-    }
-)
+type CalculationMethod struct {
+    name    string
+    param   map[string]interface{}
+}
 
 var (
     // Calculation Methods
@@ -250,10 +224,36 @@ func GetDefaults() map[string]CalculationMethod {
 }
 
 // return prayer times for a given date
-func GetTimes(date time.Time, coords []float64, timezone float64,
-    dst int, format string) map[string]string {
+// timezone float64, dst int, format string
+func GetTimes(date time.Time, coords []float64, args ...interface{}) map[string]string {
     lat = coords[0]
     lng = coords[1]
+
+    timezone := 0.0
+    dst := 0
+    format := ""
+
+    if len(args) > 0 {
+        a, ok := args[0].(float64)
+
+        if ok {
+            timezone = a
+        } else {
+            b, ok := args[0].(int)
+
+            if ok {
+                timezone = float64(b)
+            }
+        }
+
+        if len(args) > 1 {
+            dst = args[1].(int)
+        }
+
+        if len(args) > 2 {
+            format = args[2].(string)
+        }
+    }
 
     if(len(coords) > 2) {
         elv = coords[2]

@@ -16,7 +16,7 @@ func TestGetTimes(t *testing.T) {
     }
 
     fmt.Println()
-    times = GetTimes(time.Now(), []float64{ -6.9138952, 107.5800486 }, 7, 0, "12h")
+    times = GetTimes(time.Now(), []float64{ -6.9034443, 107.5731164 }, 7)
     fmt.Println("Prayer Times for today in Bandung/Indonesia\n")
     for _, val := range []string {"Fajr", "Sunrise", "Dhuhr", "Asr", "Maghrib", "Isha", "Midnight"} {
         fmt.Printf("%v: %v\n", val, times[strings.ToLower(val)])
