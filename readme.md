@@ -1,6 +1,6 @@
 # PrayTimes (Golang)
 
-This is a Golang port of PrayTimes.org's js code (ver 2.3)
+This is a Golang port of [PrayTimes.org's js code (ver 2.3)](http://www.praytimes.org/code)
 
 This library can be used to calculate muslim's prayer time by time and location
 
