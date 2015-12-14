@@ -45,10 +45,6 @@ fmt.Printf("Sunrise = %v", times["sunrise"])
 License
 ----
 
-Permission is granted to use this code, with or
-without modification, in any website or application
-provided that credit is given to the original work
-with a link back to PrayTimes.org.
+This software is licensed under the GNU Lesser General Public License version 3 (LGPL3)
 
-This program is distributed in the hope that it will
-be useful, but WITHOUT ANY WARRANTY.
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY.
