@@ -381,35 +381,24 @@ func julian(year, month, day int) float64 {
 
 
 // compute prayer times at given julian date
-func computePrayerTimes(times map[string]float64) map[string]float64 {
-    times = dayPortion(times)
+func computePrayerTimes(times map[string]*float64) {
+    dayPortion(times)
     params := setting
 
-    imsak := sunAngleTime(eval(params["imsak"]), times["imsak"], "ccw")
-    fajr := sunAngleTime(eval(params["fajr"]), times["fajr"], "ccw")
-    sunrise := sunAngleTime(riseSetAngle(), times["sunrise"], "ccw")
-    dhuhr := midDay(times["dhuhr"])
-    asr := asrTime(float64(asrFactor(params["asr"])), times["asr"])
-    sunset := sunAngleTime(riseSetAngle(), times["sunset"])
-    maghrib := sunAngleTime(eval(params["maghrib"]), times["maghrib"])
-    isha := sunAngleTime(eval(params["isha"]), times["isha"])
-
-    return map[string]float64 {
-        "imsak" : imsak,
-        "fajr" : fajr,
-        "sunrise" : sunrise,
-        "dhuhr" : dhuhr,
-        "asr" : asr,
-        "sunset" : sunset,
-        "maghrib" : maghrib,
-        "isha" : isha,
-    }
+    *times["imsak"] = sunAngleTime(eval(params["imsak"]), *times["imsak"], "ccw")
+    *times["fajr"] = sunAngleTime(eval(params["fajr"]), *times["fajr"], "ccw")
+    *times["sunrise"] = sunAngleTime(riseSetAngle(), *times["sunrise"], "ccw")
+    *times["dhuhr"] = midDay(*times["dhuhr"])
+    *times["asr"] = asrTime(float64(asrFactor(params["asr"])), *times["asr"])
+    *times["sunset"] = sunAngleTime(riseSetAngle(), *times["sunset"])
+    *times["maghrib"] = sunAngleTime(eval(params["maghrib"]), *times["maghrib"])
+    *times["isha"] = sunAngleTime(eval(params["isha"]), *times["isha"])
 }
 
 // compute prayer times
 func computeTimes() map[string]string {
     // default times
-    times := map[string]float64 {
+    t := map[string]float64 {
         "imsak" : 5,
         "fajr" : 5,
         "sunrise" : 6,
@@ -420,51 +409,60 @@ func computeTimes() map[string]string {
         "isha" : 18,
     }
 
+    var times map[string]*float64
+    times = make(map[string]*float64)
+
+    for k, v := range t {
+        val := v
+        times[k] = &val
+    }
+
     // main iterations
     for i := 1; i <= numIterations; i++ {
-        times = computePrayerTimes(times)
+        computePrayerTimes(times)
     }
 
-    times = adjustTimes(times)
+    adjustTimes(times)
 
     // add midnight time
+    var midnight float64
     if setting["midnight"] == "Jafari" {
-        times["midnight"] = times["sunset"] + timeDiff(times["sunset"], times["fajr"]) / 2
+        midnight = *times["sunset"] + timeDiff(*times["sunset"], *times["fajr"]) / 2
     } else {
-        times["midnight"] = times["sunset"] + timeDiff(times["sunset"], times["sunrise"]) / 2
+        midnight = *times["sunset"] + timeDiff(*times["sunset"], *times["sunrise"]) / 2
     }
 
-    times = tuneTimes(times)
+    times["midnight"] = &midnight
+
+    tuneTimes(times)
     return modifyFormats(times)
 }
 
 // adjust times
-func adjustTimes(times map[string]float64) map[string]float64 {
+func adjustTimes(times map[string]*float64) {
     params := setting
 
     for key, _ := range times {
-        times[key] += timeZone - lng / 15
+        *times[key] += timeZone - lng / 15
     }
 
     if params["highLats"] != "None" {
-        times = adjustHighLats(times)
+        adjustHighLats(times)
     }
 
     if isMin(params["imsak"]) {
-        times["imsak"] = times["fajr"] - eval(params["imsak"]) / 60
+        *times["imsak"] = *times["fajr"] - eval(params["imsak"]) / 60
     }
 
     if isMin(params["maghrib"]) {
-        times["maghrib"] = times["sunset"] + eval(params["maghrib"]) / 60
+        *times["maghrib"] = *times["sunset"] + eval(params["maghrib"]) / 60
     }
 
     if isMin(params["isha"]) {
-        times["isha"] = times["maghrib"] + eval(params["isha"]) / 60
+        *times["isha"] = *times["maghrib"] + eval(params["isha"]) / 60
     }
 
-    times["dhuhr"] += eval(params["dhuhr"]) / 60
-
-    return times
+    *times["dhuhr"] += eval(params["dhuhr"]) / 60
 }
 
 // get asr shadow factor
@@ -489,38 +487,34 @@ func riseSetAngle() float64 {
 }
 
 // apply offsets to the times
-func tuneTimes(times map[string]float64) map[string]float64 {
+func tuneTimes(times map[string]*float64) {
     i := 0;
     for key, _ := range times {
-        times[key] += float64(offset[i]) / 60
+        *times[key] += float64(offset[i]) / 60
         i++
     }
-
-    return times
 }
 
 // convert times to given time format
-func modifyFormats(times map[string]float64) map[string]string {
+func modifyFormats(times map[string]*float64) map[string]string {
     formatted := map[string]string{}
 
     for key, _ := range times {
-        formatted[key] = GetFormattedTime(times[key], timeFormat, []string{})
+        formatted[key] = GetFormattedTime(*times[key], timeFormat, []string{})
     }
 
     return formatted
 }
 
 // adjust times for locations in higher latitudes
-func adjustHighLats(times map[string]float64) map[string]float64 {
+func adjustHighLats(times map[string]*float64) {
     params := setting
-    nightTime := timeDiff(times["sunset"], times["sunrise"])
+    nightTime := timeDiff(*times["sunset"], *times["sunrise"])
 
-    times["imsak"] = adjustHLTime(times["imsak"], times["sunrise"], eval(params["imsak"]), nightTime, "ccw")
-    times["fajr"]  = adjustHLTime(times["fajr"], times["sunrise"], eval(params["fajr"]), nightTime, "ccw");
-    times["isha"]  = adjustHLTime(times["isha"], times["sunset"], eval(params["isha"]), nightTime);
-    times["maghrib"] = adjustHLTime(times["maghrib"], times["sunset"], eval(params["maghrib"]), nightTime);
-
-    return times
+    *times["imsak"] = adjustHLTime(*times["imsak"], *times["sunrise"], eval(params["imsak"]), nightTime, "ccw")
+    *times["fajr"]  = adjustHLTime(*times["fajr"], *times["sunrise"], eval(params["fajr"]), nightTime, "ccw");
+    *times["isha"]  = adjustHLTime(*times["isha"], *times["sunset"], eval(params["isha"]), nightTime);
+    *times["maghrib"] = adjustHLTime(*times["maghrib"], *times["sunset"], eval(params["maghrib"]), nightTime);
 }
 
 // adjust a time for higher latitudes
@@ -567,12 +561,10 @@ func nightPortion(angle float64, night float64) float64 {
 }
 
 // convert hours to day portions
-func dayPortion(times map[string]float64) map[string]float64 {
+func dayPortion(times map[string]*float64) {
     for key, _ := range times {
-        times[key] /= 24
+        *times[key] /= 24
     }
-
-    return times
 }
 
 //---------------------- Time Zone Functions -----------------------
@@ -595,7 +587,6 @@ func getDst(date []int) bool {
 // GMT offset for a given date
 func gmtOffset(date []int) int {
     localDate := time.Date(date[0], time.Month(date[1] - 1), date[2], 12, 0, 0, 0, time.Local)
-    // GMTString := localDate.UTC().String()
     GMTDate := localDate.UTC()
     hoursDiff := localDate.Sub(GMTDate).Hours()
     return int(hoursDiff)
